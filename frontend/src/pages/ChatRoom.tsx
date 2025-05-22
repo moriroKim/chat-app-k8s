@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import {
-  getChatRooms,
-  getMessages,
-  createChatRoom,
-  sendMessage,
-} from "../utils/api";
+import { getChatRooms, getMessages, createChatRoom, sendMessage } from "../utils/api";
 
 interface Message {
   id: string;
@@ -47,8 +42,7 @@ const ChatRoom: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     setTimeout(() => {
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop =
-          messagesContainerRef.current.scrollHeight;
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
     }, 100);
     setHasNewMessages(false);
@@ -119,8 +113,7 @@ const ChatRoom: React.FC = () => {
 
           // 현재 스크롤이 최하단에 있는지 확인
           if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } =
-              messagesContainerRef.current;
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
             const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
 
             if (isAtBottom) {
@@ -166,9 +159,19 @@ const ChatRoom: React.FC = () => {
         });
       } else {
         // 이전 메시지 로드 시
+        const oldScrollHeight = messagesContainerRef.current?.scrollHeight || 0;
         setMessages((prev) => [...response.messages, ...prev]);
         setHasMore(response.hasMore);
         setPage((prev) => prev + 1);
+
+        // 새로운 메시지가 추가된 후 스크롤 위치 조정
+        requestAnimationFrame(() => {
+          if (messagesContainerRef.current) {
+            const newScrollHeight = messagesContainerRef.current.scrollHeight;
+            const scrollDiff = newScrollHeight - oldScrollHeight;
+            messagesContainerRef.current.scrollTop = scrollDiff;
+          }
+        });
       }
     } catch (error) {
       setError("메시지를 불러오는데 실패했습니다.");
@@ -300,21 +303,14 @@ const ChatRoom: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">채팅방</h2>
             <div className="flex items-center gap-2">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? "bg-green-400" : "bg-red-400"
-                }`}
+                className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
               ></div>
               <button
                 onClick={() => setIsCreatingRoom(!isCreatingRoom)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 transition-all shadow-lg"
               >
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M12 4v16m-8-8h16"
-                    stroke="#fff"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                  <path d="M12 4v16m-8-8h16" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
               <button
@@ -398,9 +394,7 @@ const ChatRoom: React.FC = () => {
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
                   <div className="bg-white/10 backdrop-blur-lg rounded-lg px-4 py-2 flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-cyan-400"></div>
-                    <span className="text-sm text-gray-200">
-                      이전 메시지 불러오는 중...
-                    </span>
+                    <span className="text-sm text-gray-200">이전 메시지 불러오는 중...</span>
                   </div>
                 </div>
               )}
@@ -408,9 +402,7 @@ const ChatRoom: React.FC = () => {
                 <div
                   key={message.id}
                   className={`flex ${
-                    message.sender === currentUser?.username
-                      ? "justify-end"
-                      : "justify-start"
+                    message.sender === currentUser?.username ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div className="max-w-[50%]">
@@ -425,7 +417,23 @@ const ChatRoom: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-400 mt-1">
                       {message.sender} •{" "}
-                      {new Date(message.timestamp).toLocaleString()}
+                      {message.timestamp
+                        ? new Date(message.timestamp.replace(" ", "T")).toLocaleString("ko-KR", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })
+                        : new Date().toLocaleString("ko-KR", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })}
                     </div>
                   </div>
                 </div>
@@ -449,10 +457,7 @@ const ChatRoom: React.FC = () => {
                 </svg>
               </button>
             )}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4 border-t border-white/10"
-            >
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10">
               <div className="flex items-center bg-white/10 rounded-lg px-2 focus-within:ring-2 focus-within:ring-cyan-400 max-w-[1000px] mx-auto">
                 <input
                   type="text"
