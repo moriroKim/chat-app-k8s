@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import {
-  getChatRooms,
-  getMessages,
-  createChatRoom,
-  sendMessage,
-} from "../utils/api";
+import { getChatRooms, getMessages, createChatRoom, sendMessage } from "../utils/api";
 
 interface Message {
   id: string;
@@ -30,6 +25,7 @@ const ChatRoom: React.FC = () => {
   const [error, setError] = useState("");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{
     id: number;
     username: string;
@@ -43,12 +39,24 @@ const ChatRoom: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  const formatTimestamp = (timestamp: string): string => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return new Date().toISOString();
+      }
+      return date.toISOString();
+    } catch {
+      console.error("Invalid timestamp:", timestamp);
+      return new Date().toISOString();
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     setTimeout(() => {
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop =
-          messagesContainerRef.current.scrollHeight;
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
     }, 100);
     setHasNewMessages(false);
@@ -81,7 +89,7 @@ const ChatRoom: React.FC = () => {
       return;
     }
 
-    const socket = io("http://localhost:3000", {
+    const socket = io(import.meta.env.VITE_API_URL, {
       auth: { token },
     });
     socketRef.current = socket;
@@ -115,12 +123,16 @@ const ChatRoom: React.FC = () => {
         setMessages((prev) => {
           const isDuplicate = prev.some((m) => m.id === message.id);
           if (isDuplicate) return prev;
-          const newMessages = [...prev, message];
+          // timestamp를 ISO 형식으로 변환
+          const formattedMessage = {
+            ...message,
+            timestamp: formatTimestamp(message.timestamp),
+          };
+          const newMessages = [...prev, formattedMessage];
 
           // 현재 스크롤이 최하단에 있는지 확인
           if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } =
-              messagesContainerRef.current;
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
             const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
 
             if (isAtBottom) {
@@ -157,7 +169,11 @@ const ChatRoom: React.FC = () => {
 
       if (pageNum === 1) {
         // 첫 페이지 로드 시 (최신 메시지)
-        setMessages(response.messages);
+        const formattedMessages = response.messages.map((msg: Message) => ({
+          ...msg,
+          timestamp: formatTimestamp(msg.timestamp),
+        }));
+        setMessages(formattedMessages);
         setHasMore(response.hasMore);
         setPage(1);
         // 스크롤을 맨 아래로 이동
@@ -166,7 +182,11 @@ const ChatRoom: React.FC = () => {
         });
       } else {
         // 이전 메시지 로드 시
-        setMessages((prev) => [...response.messages, ...prev]);
+        const formattedMessages = response.messages.map((msg: Message) => ({
+          ...msg,
+          timestamp: formatTimestamp(msg.timestamp),
+        }));
+        setMessages((prev) => [...formattedMessages, ...prev]);
         setHasMore(response.hasMore);
         setPage((prev) => prev + 1);
       }
@@ -178,12 +198,49 @@ const ChatRoom: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    console.log(messages);
+  }, [messages]);
+
+  // 초기 채팅방 목록 로드
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchRooms = async () => {
+      try {
+        setIsInitialLoading(true);
+        const data = await getChatRooms(token);
+        setRooms(data);
+        // 첫 번째 방이 있으면 자동으로 선택
+        if (data.length > 0) {
+          setSelectedRoom(data[0].id);
+          // 첫 번째 방의 메시지도 자동으로 로드
+          fetchMessages(data[0].id);
+        }
+      } catch (error) {
+        setError("채팅방 목록을 불러오는데 실패했습니다.");
+        console.error(error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, [navigate]);
+
   // 채팅방 선택 시 Socket.IO 구독 및 메시지 로드
   useEffect(() => {
     if (!selectedRoom || !socketRef.current?.connected) return;
 
     socketRef.current.emit("join_room", selectedRoom);
-    fetchMessages(selectedRoom);
+    // 이미 fetchRooms에서 메시지를 로드했으므로 여기서는 중복 로드하지 않음
+    if (messages.length === 0) {
+      fetchMessages(selectedRoom);
+    }
 
     return () => {
       socketRef.current?.emit("leave_room", selectedRoom);
@@ -202,30 +259,16 @@ const ChatRoom: React.FC = () => {
     }
   };
 
-  // 초기 채팅방 목록 로드
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    const fetchRooms = async () => {
-      try {
-        const data = await getChatRooms(token);
-        setRooms(data);
-        if (data.length > 0) {
-          const firstRoomId = data[0].id;
-          setSelectedRoom(firstRoomId);
-        }
-      } catch (error) {
-        setError("채팅방 목록을 불러오는데 실패했습니다.");
-        console.error(error);
-      }
-    };
-
-    fetchRooms();
-  }, [navigate]);
+  if (isInitialLoading) {
+    return (
+      <div className="flex h-screen bg-gradient-to-br from-[#0f2027] via-[#2c5364] to-[#232526] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-300 text-lg">채팅방을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 채팅방 선택 핸들러
   const handleRoomSelect = (roomId: string) => {
@@ -300,21 +343,14 @@ const ChatRoom: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">채팅방</h2>
             <div className="flex items-center gap-2">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? "bg-green-400" : "bg-red-400"
-                }`}
+                className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
               ></div>
               <button
                 onClick={() => setIsCreatingRoom(!isCreatingRoom)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 transition-all shadow-lg"
               >
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M12 4v16m-8-8h16"
-                    stroke="#fff"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                  <path d="M12 4v16m-8-8h16" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
               <button
@@ -398,9 +434,7 @@ const ChatRoom: React.FC = () => {
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
                   <div className="bg-white/10 backdrop-blur-lg rounded-lg px-4 py-2 flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-cyan-400"></div>
-                    <span className="text-sm text-gray-200">
-                      이전 메시지 불러오는 중...
-                    </span>
+                    <span className="text-sm text-gray-200">이전 메시지 불러오는 중...</span>
                   </div>
                 </div>
               )}
@@ -408,9 +442,7 @@ const ChatRoom: React.FC = () => {
                 <div
                   key={message.id}
                   className={`flex ${
-                    message.sender === currentUser?.username
-                      ? "justify-end"
-                      : "justify-start"
+                    message.sender === currentUser?.username ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div className="max-w-[50%]">
@@ -425,7 +457,16 @@ const ChatRoom: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-400 mt-1">
                       {message.sender} •{" "}
-                      {new Date(message.timestamp).toLocaleString()}
+                      {message.timestamp
+                        ? new Date(message.timestamp).toLocaleString("ko-KR", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })
+                        : "시간 정보 없음"}
                     </div>
                   </div>
                 </div>
@@ -449,10 +490,7 @@ const ChatRoom: React.FC = () => {
                 </svg>
               </button>
             )}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4 border-t border-white/10"
-            >
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10">
               <div className="flex items-center bg-white/10 rounded-lg px-2 focus-within:ring-2 focus-within:ring-cyan-400 max-w-[1000px] mx-auto">
                 <input
                   type="text"

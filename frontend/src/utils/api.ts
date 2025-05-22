@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/api";
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 interface LoginData {
   email: string;
@@ -60,19 +60,12 @@ export const getChatRooms = async (token: string) => {
   return response.json();
 };
 
-export const getMessages = async (
-  roomId: string,
-  token: string,
-  page: number = 1
-) => {
-  const response = await fetch(
-    `${API_URL}/chat/rooms/${roomId}/messages?page=${page}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+export const getMessages = async (roomId: string, token: string, page: number = 1) => {
+  const response = await fetch(`${API_URL}/chat/rooms/${roomId}/messages?page=${page}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   if (!response.ok) {
     throw new Error("메시지를 불러오는데 실패했습니다.");
@@ -99,11 +92,7 @@ export const createChatRoom = async (name: string, token: string) => {
   return response.json();
 };
 
-export const sendMessage = async (
-  roomId: string,
-  content: string,
-  token: string
-) => {
+export const sendMessage = async (roomId: string, content: string, token: string) => {
   const response = await fetch(`${API_URL}/chat/rooms/${roomId}/messages`, {
     method: "POST",
     headers: {

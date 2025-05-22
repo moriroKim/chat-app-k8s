@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/api";
+const API_URL = `${import.meta.env.VITE_API_URL}`;
 
 interface LoginData {
   email: string;
@@ -45,11 +45,7 @@ export const register = async (data: RegisterData) => {
   return response.json();
 };
 
-export const sendMessage = async (
-  roomId: string,
-  content: string,
-  token: string
-) => {
+export const sendMessage = async (roomId: string, content: string, token: string) => {
   const response = await fetch(`${API_URL}/chat/rooms/${roomId}/messages`, {
     method: "POST",
     headers: {

@@ -13,7 +13,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -31,10 +31,10 @@ io.use((socket, next) => {
   }
 
   try {
-    const user = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-secret-key"
-    ) as { id: number; username: string };
+    const user = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
+      id: number;
+      username: string;
+    };
     socket.data.user = user;
     next();
   } catch (error) {
