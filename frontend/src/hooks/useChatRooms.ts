@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Socket } from "socket.io-client";
 import type { ChatRoom } from "../types/chat";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface UseChatRoomsReturn {
   chatRooms: ChatRoom[];
   selectedRoom: ChatRoom | null;
@@ -22,7 +24,7 @@ export const useChatRooms = (socketRef: React.RefObject<Socket>): UseChatRoomsRe
   // 채팅방 목록 가져오기
   const fetchChatRooms = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/chat/rooms", {
+      const response = await fetch(`${API_URL}/api/chat/rooms`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -43,7 +45,7 @@ export const useChatRooms = (socketRef: React.RefObject<Socket>): UseChatRoomsRe
   // 새 채팅방 생성
   const createRoom = async (name: string) => {
     try {
-      const response = await fetch("http://localhost:3000/api/chat/rooms", {
+      const response = await fetch(`${API_URL}/api/chat/rooms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

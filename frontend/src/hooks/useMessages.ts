@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getMessages, sendMessage } from "../apis/api";
-import { formatTimestamp } from "../utils/helpers";
-import useScrollToBottom from "./useScrollToBottom";
 import { Socket } from "socket.io-client";
-import type { Message, User } from "../types/chat";
+import type { Message } from "../types/chat";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface UseMessagesReturn {
   messages: Message[];
@@ -15,7 +14,7 @@ interface UseMessagesReturn {
   setError: (error: string | null) => void;
   hasMore: boolean;
   loadMoreMessages: () => void;
-  messagesContainerRef: React.RefObject<HTMLDivElement>;
+  messagesContainerRef: React.RefObject<HTMLDivElement | null>;
   scrollToBottom: () => void;
   hasNewMessages: boolean;
   setHasNewMessages: (hasNew: boolean) => void;
@@ -31,7 +30,7 @@ export const useMessages = (
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -42,7 +41,7 @@ export const useMessages = (
     try {
       setIsLoading(true);
       const response = await fetch(
-        `http://localhost:3000/api/chat/rooms/${roomId}/messages?page=${pageNum}&limit=${PAGE_SIZE}`,
+        `${API_URL}/api/chat/rooms/${roomId}/messages?page=${pageNum}&limit=${PAGE_SIZE}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -56,11 +55,11 @@ export const useMessages = (
 
       const data = await response.json();
       if (pageNum === 1) {
-        setMessages(data);
+        setMessages(data.messages);
       } else {
-        setMessages((prev) => [...data, ...prev]);
+        setMessages((prev) => [...data.messages, ...prev]);
       }
-      setHasMore(data.length === PAGE_SIZE);
+      setHasMore(data.hasMore);
     } catch (error) {
       console.error("메시지 가져오기 실패:", error);
       setError("메시지를 가져오는데 실패했습니다.");
@@ -91,7 +90,7 @@ export const useMessages = (
     if (!newMessage.trim() || !roomId || !socketRef.current) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/chat/rooms/${roomId}/messages`, {
+      const response = await fetch(`${API_URL}/api/chat/rooms/${roomId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

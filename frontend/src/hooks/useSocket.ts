@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface UseSocketReturn {
-  socketRef: React.RefObject<Socket>;
+  socketRef: React.RefObject<Socket | null>;
   isConnected: boolean;
   error: string | null;
   setError: (error: string | null) => void;
 }
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export const useSocket = (): UseSocketReturn => {
   const socketRef = useRef<Socket | null>(null);
@@ -18,7 +20,7 @@ export const useSocket = (): UseSocketReturn => {
     if (!token) return;
 
     // 소켓 연결
-    socketRef.current = io("http://localhost:3000", {
+    socketRef.current = io(API_URL, {
       auth: { token },
     });
 

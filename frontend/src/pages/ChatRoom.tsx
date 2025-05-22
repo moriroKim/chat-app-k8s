@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import { getChatRooms, getMessages, createChatRoom, sendMessage } from "../utils/api";
+import { getChatRooms, getMessages, createChatRoom, sendMessage } from "../api/api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface Message {
   id: string;
@@ -75,7 +77,7 @@ const ChatRoom: React.FC = () => {
       return;
     }
 
-    const socket = io("http://localhost:3000", {
+    const socket = io(API_URL, {
       auth: { token },
     });
     socketRef.current = socket;

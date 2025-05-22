@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { register } from "../utils/api";
+import { register } from "../api/api";
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -29,12 +29,7 @@ const Register: React.FC = () => {
         <div className="flex flex-col items-center mb-6">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 via-cyan-400 to-indigo-500 flex items-center justify-center shadow-lg mb-4">
             <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M12 4v16m-8-8h16"
-                stroke="#fff"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
+              <path d="M12 4v16m-8-8h16" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-white mb-1">회원가입</h2>
