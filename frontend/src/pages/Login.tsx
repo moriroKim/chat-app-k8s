@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../utils/api";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -11,8 +10,20 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const data = await login({ email, password });
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
       console.log("서버 응답:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "로그인에 실패했습니다.");
+      }
 
       // 토큰에서 사용자 정보 추출
       const payload = JSON.parse(atob(data.token.split(".")[1]));
@@ -31,7 +42,9 @@ const Login: React.FC = () => {
 
       navigate("/chat");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "로그인에 실패했습니다.");
+      setError(
+        error instanceof Error ? error.message : "로그인에 실패했습니다."
+      );
     }
   };
 
@@ -45,11 +58,20 @@ const Login: React.FC = () => {
         <div className="flex flex-col items-center mb-6">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 via-cyan-400 to-indigo-500 flex items-center justify-center shadow-lg mb-4">
             <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="2" fill="none" />
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="#fff"
+                strokeWidth="2"
+                fill="none"
+              />
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
-          <p className="text-gray-300 text-sm">Please enter your details to sign in.</p>
+          <p className="text-gray-300 text-sm">
+            Please enter your details to sign in.
+          </p>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
