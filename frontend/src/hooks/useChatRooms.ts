@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Socket } from "socket.io-client";
 import type { ChatRoom } from "../types/chat";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { API_URL } from "../config";
 
 interface UseChatRoomsReturn {
   chatRooms: ChatRoom[];
@@ -15,7 +14,9 @@ interface UseChatRoomsReturn {
   setError: (error: string | null) => void;
 }
 
-export const useChatRooms = (socketRef: React.RefObject<Socket>): UseChatRoomsReturn => {
+export const useChatRooms = (
+  socketRef: React.RefObject<Socket>
+): UseChatRoomsReturn => {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);

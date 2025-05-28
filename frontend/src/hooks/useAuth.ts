@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import type { User } from "../types/chat";
+import { API_URL } from "../config";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+// window.ENV 객체의 타입 정의
+declare global {
+  interface Window {
+    ENV?: {
+      VITE_API_URL?: string;
+    };
+  }
+}
 
 interface UseAuthReturn {
   user: User | null;
@@ -22,7 +30,7 @@ export const useAuth = (): UseAuthReturn => {
     const token = localStorage.getItem("token");
     if (token) {
       // 토큰이 있으면 사용자 정보 가져오기
-      fetch(`${API_URL}/auth/me`, {
+      fetch(`${API_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -55,7 +63,7 @@ export const useAuth = (): UseAuthReturn => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

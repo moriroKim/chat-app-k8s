@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { io, Socket } from "socket.io-client";
-import { getChatRooms, getMessages, createChatRoom, sendMessage } from "../api/api";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { socket, connectSocket, disconnectSocket } from "../utils/socket";
+import {
+  getChatRooms,
+  getMessages,
+  createChatRoom,
+  sendMessage,
+} from "../api/api";
 
 interface Message {
   id: string;
@@ -35,7 +38,7 @@ const ChatRoom: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<typeof socket | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -44,7 +47,8 @@ const ChatRoom: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     setTimeout(() => {
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        messagesContainerRef.current.scrollTop =
+          messagesContainerRef.current.scrollHeight;
       }
     }, 100);
     setHasNewMessages(false);
@@ -69,7 +73,7 @@ const ChatRoom: React.FC = () => {
     }
   }, [navigate]);
 
-  // Socket.IO 연결 설정
+  // Socket.IO 연결
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -77,9 +81,7 @@ const ChatRoom: React.FC = () => {
       return;
     }
 
-    const socket = io(API_URL, {
-      auth: { token },
-    });
+    connectSocket(token);
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -98,7 +100,7 @@ const ChatRoom: React.FC = () => {
     });
 
     return () => {
-      socket.disconnect();
+      disconnectSocket();
     };
   }, [navigate]);
 
@@ -115,7 +117,8 @@ const ChatRoom: React.FC = () => {
 
           // 현재 스크롤이 최하단에 있는지 확인
           if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+            const { scrollTop, scrollHeight, clientHeight } =
+              messagesContainerRef.current;
             const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
 
             if (isAtBottom) {
@@ -305,14 +308,21 @@ const ChatRoom: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">채팅방</h2>
             <div className="flex items-center gap-2">
               <div
-                className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
+                className={`w-2 h-2 rounded-full ${
+                  isConnected ? "bg-green-400" : "bg-red-400"
+                }`}
               ></div>
               <button
                 onClick={() => setIsCreatingRoom(!isCreatingRoom)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 transition-all shadow-lg"
               >
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <path d="M12 4v16m-8-8h16" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+                  <path
+                    d="M12 4v16m-8-8h16"
+                    stroke="#fff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
               <button
@@ -396,7 +406,9 @@ const ChatRoom: React.FC = () => {
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
                   <div className="bg-white/10 backdrop-blur-lg rounded-lg px-4 py-2 flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-cyan-400"></div>
-                    <span className="text-sm text-gray-200">이전 메시지 불러오는 중...</span>
+                    <span className="text-sm text-gray-200">
+                      이전 메시지 불러오는 중...
+                    </span>
                   </div>
                 </div>
               )}
@@ -404,7 +416,9 @@ const ChatRoom: React.FC = () => {
                 <div
                   key={message.id}
                   className={`flex ${
-                    message.sender === currentUser?.username ? "justify-end" : "justify-start"
+                    message.sender === currentUser?.username
+                      ? "justify-end"
+                      : "justify-start"
                   }`}
                 >
                   <div className="max-w-[50%]">
@@ -420,7 +434,9 @@ const ChatRoom: React.FC = () => {
                     <div className="text-xs text-gray-400 mt-1">
                       {message.sender} •{" "}
                       {message.timestamp
-                        ? new Date(message.timestamp.replace(" ", "T")).toLocaleString("ko-KR", {
+                        ? new Date(
+                            message.timestamp.replace(" ", "T")
+                          ).toLocaleString("ko-KR", {
                             year: "numeric",
                             month: "2-digit",
                             day: "2-digit",
@@ -459,7 +475,10 @@ const ChatRoom: React.FC = () => {
                 </svg>
               </button>
             )}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10">
+            <form
+              onSubmit={handleSendMessage}
+              className="p-4 border-t border-white/10"
+            >
               <div className="flex items-center bg-white/10 rounded-lg px-2 focus-within:ring-2 focus-within:ring-cyan-400 max-w-[1000px] mx-auto">
                 <input
                   type="text"

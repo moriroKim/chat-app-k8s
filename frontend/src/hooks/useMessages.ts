@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import type { Message } from "../types/chat";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { API_URL } from "../config";
 
 interface UseMessagesReturn {
   messages: Message[];
@@ -90,14 +89,17 @@ export const useMessages = (
     if (!newMessage.trim() || !roomId || !socketRef.current) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/chat/rooms/${roomId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ content: newMessage }),
-      });
+      const response = await fetch(
+        `${API_URL}/api/chat/rooms/${roomId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ content: newMessage }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("메시지 전송에 실패했습니다.");
@@ -117,7 +119,8 @@ export const useMessages = (
   // 스크롤 관련 함수들
   const scrollToBottom = useCallback(() => {
     if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
       setHasNewMessages(false);
     }
   }, []);
@@ -132,7 +135,8 @@ export const useMessages = (
         const container = messagesContainerRef.current;
         if (container) {
           const isAtBottom =
-            container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+            container.scrollHeight - container.scrollTop <=
+            container.clientHeight + 100;
           if (!isAtBottom) {
             setHasNewMessages(true);
           } else {

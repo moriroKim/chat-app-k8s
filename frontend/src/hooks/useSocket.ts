@@ -8,7 +8,7 @@ interface UseSocketReturn {
   setError: (error: string | null) => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = "http://192.168.56.240:3000";
 
 export const useSocket = (): UseSocketReturn => {
   const socketRef = useRef<Socket | null>(null);
@@ -22,6 +22,10 @@ export const useSocket = (): UseSocketReturn => {
     // 소켓 연결
     socketRef.current = io(API_URL, {
       auth: { token },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     // 연결 이벤트 핸들러
